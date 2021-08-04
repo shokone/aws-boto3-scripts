@@ -134,7 +134,6 @@ def statusInstance(instance):
 def main():
     ## setting some global variables so that it can be reused
     global ec2client
-    global ec2resource
     global profile
     global region
 
