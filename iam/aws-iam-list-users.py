@@ -92,8 +92,14 @@ def describeIAMUser(user):
             user["User"]["PermissionsBoundary"]['PermissionsBoundaryType']
             print("\t%s=%s" %(user["User"]["PermissionsBoundary"]['PermissionsBoundaryType'], user["User"]["PermissionsBoundary"]['PermissionsBoundaryArn']))
         except:
+            pass
+
+        try:
             for bound in user["User"]["PermissionsBoundary"]:
                 print("\t%s=%s" %(bound['PermissionsBoundaryType'], bound['PermissionsBoundaryArn']))
+        except:
+            pass
+            
     except:
         pass
 
