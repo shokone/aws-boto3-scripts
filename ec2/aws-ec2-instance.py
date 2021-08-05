@@ -96,7 +96,8 @@ def describeInstances(region, instances):
 def startInstance(instance):
     try:
         ec2client.start_instances(InstanceIds=[instance])
-        logging.info("Starting instance %s. Please wait to be ready." %(instance))
+        logging.info("Starting instance %s..." %(instance))
+        logging.info("Please wait to be ready")
         waiter = ec2client.get_waiter('system_status_ok')
         waiter.wait(InstanceIds=[instance])
         logging.info("Instance %s is ready" %(instance))
@@ -108,7 +109,8 @@ def startInstance(instance):
 def stopInstance(instance):
     try:
         ec2client.stop_instances(InstanceIds=[instance])
-        logging.info("Stopping instance %s. Please wait to be ready." %(instance))
+        logging.info("Stopping instance %s..." %(instance))
+        logging.info("Please wait to be ready")
         waiter = ec2client.get_waiter('instance_stopped')
         waiter.wait(InstanceIds=[instance])
         logging.info("Instance %s stopped" %(instance))
@@ -171,24 +173,22 @@ def main():
         else:
             instances = ec2client.describe_instances()
             describeInstances(region, instances)
-            
+
         sys.exit(0)
 
     elif args.action == "start":
         checkInstanceID(args.instance)
-        logging.info("Starting instance... ", args.instance)
         startInstance(args.instance)
         sys.exit(0)
 
     elif args.action == "stop":
         checkInstanceID(args.instance)
-        logging.info("Stoping instance... ", args.instance)
         stopInstance(args.instance)
         sys.exit(0)
 
     elif args.action == "status":
         checkInstanceID(args.instance)
-        logging.info("Checking status of instance %s... ", args.instance)
+        logging.info("Checking status of instance %s... " %(args.instance))
         
         try:
             instance = ec2client.describe_instances(InstanceIds=[args.instance])
