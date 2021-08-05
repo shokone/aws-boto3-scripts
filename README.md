@@ -16,3 +16,4 @@ cd aws-boto3-scripts
 pip install -r requirements.txt
 ```
 
+
