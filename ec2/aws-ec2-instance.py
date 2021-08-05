@@ -110,7 +110,7 @@ def stopInstance(instance):
     try:
         ec2client.stop_instances(InstanceIds=[instance])
         logging.info("Stopping instance %s..." %(instance))
-        logging.info("Please wait to be ready")
+        logging.info("Please wait to be stopped")
         waiter = ec2client.get_waiter('instance_stopped')
         waiter.wait(InstanceIds=[instance])
         logging.info("Instance %s stopped" %(instance))
