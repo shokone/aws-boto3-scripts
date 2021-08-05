@@ -10,7 +10,8 @@ import boto3
 from botocore.exceptions import ClientError
 import sys
 import argparse
-import jsonimport logging
+import json
+import logging
 
 ## add default logger config
 logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
