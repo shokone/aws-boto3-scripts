@@ -136,7 +136,7 @@ def main():
 
     setEc2client(region)
 
-    if args.action != "list":
+    if args.action != "list" or region != "all":
         checkRegion(region)
         setEc2client(region)
 
@@ -144,31 +144,35 @@ def main():
         logging.info("Listing Security Groups...")
         print("Region\t\tName\tID\tVPC")
 
-        setEc2Emptyclient()
-        try:
-            regions = ec2client.describe_regions()['Regions']
-        except ClientError as e:
-            logging.error(e)
-            
-        for reg in regions:
-            region = reg['RegionName']
-            setEc2client(region)
+        if region == "all":
+            setEc2Emptyclient()
+            try:
+                regions = ec2client.describe_regions()['Regions']
+            except ClientError as e:
+                logging.error(e)
+                
+            for reg in regions:
+                region = reg['RegionName']
+                setEc2client(region)
+                securityGroups = ec2client.describe_security_groups()
+                describeSecurityGroups(region, securityGroups)
+        else:
             securityGroups = ec2client.describe_security_groups()
             describeSecurityGroups(region, securityGroups)
 
         sys.exit(0)
 
     elif args.action == "rules":
-    	checkSGID(args.secgroupid)
-    	logging.info("Listing rules of Security Group %s... " %(args.secgroupid))
+        checkSGID(args.secgroupid)
+        logging.info("Listing rules of Security Group %s... " %(args.secgroupid))
 
         try:
-    	   securityGroups = ec2client.describe_security_groups(GroupIds=[args.secgroupid])
-    	except ClientError as e:
+            securityGroups = ec2client.describe_security_groups(GroupIds=[args.secgroupid])
+        except ClientError as e:
             logging.error(e)
 
         describeSecurityGroupRules(region, securityGroups)
-    	sys.exit(0)
+        sys.exit(0)
 
 
 if __name__ == "__main__":

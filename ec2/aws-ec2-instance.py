@@ -148,7 +148,7 @@ def main():
     boto3.setup_default_session(profile_name=profile)
     
     ## load region passed in arguments if action is not list
-    if args.action != "list":
+    if args.action != "list" or region != "all":
         checkRegion(region)
         setEc2client(region)
 
@@ -156,18 +156,22 @@ def main():
         logging.info("Listing instances...")
         print("Region\tName\tID\tType\tStatus\tPrivate IP\tPublic IP")
 
-        setEc2Emptyclient()
-        try:
-            regions = ec2client.describe_regions()['Regions']
-        except ClientError as e:
-            logging.error(e)
+        if region == "all":
+            setEc2Emptyclient()
+            try:
+                regions = ec2client.describe_regions()['Regions']
+            except ClientError as e:
+                logging.error(e)
 
-        for reg in regions:
-            region = reg['RegionName']
-            setEc2client(region)
+            for reg in regions:
+                region = reg['RegionName']
+                setEc2client(region)
+                instances = ec2client.describe_instances()
+                describeInstances(region, instances)
+        else:
             instances = ec2client.describe_instances()
             describeInstances(region, instances)
-
+            
         sys.exit(0)
 
     elif args.action == "start":

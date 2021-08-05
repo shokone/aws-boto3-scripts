@@ -110,7 +110,7 @@ def main():
 
     setEc2client(region)
 
-    if args.action != "list":
+    if args.action != "list" or region != "all":
         checkRegion(region)
         setEc2client(region)
 
@@ -118,15 +118,19 @@ def main():
         logging.info("Listing Elastic IPs...")
         print("Region\t\tName\tAllocation ID\tPublic IP\tDomain\tAssociation ID\tInstance ID\tIface ID\tPrivate IP")
 
-        setEc2Emptyclient()
-        try:
-            regions = ec2client.describe_regions()['Regions']
-        except ClientError as e:
-            logging.error(e)
+        if region == "all":
+            setEc2Emptyclient()
+            try:
+                regions = ec2client.describe_regions()['Regions']
+            except ClientError as e:
+                logging.error(e)
             
-        for reg in regions:
-            region = reg['RegionName']
-            setEc2client(region)
+            for reg in regions:
+                region = reg['RegionName']
+                setEc2client(region)
+                elasticIPs = ec2client.describe_addresses()
+                describeElasticIPs(region, elasticIPs)
+        else:
             elasticIPs = ec2client.describe_addresses()
             describeElasticIPs(region, elasticIPs)
 
