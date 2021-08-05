@@ -40,9 +40,7 @@ except:
 def setiamclient():
     try:
         global iamclient
-        global iamresource
         iamclient = boto3.client('iam')
-        iamresource = boto3.resource('iam')
         
     except ClientError as e:
         logging.error(e)
@@ -51,7 +49,7 @@ def setiamclient():
 
 def checkUser(user):
     if user == "null":
-        logging.error("User ID must be provided as argument.")
+        logging.error("Username must be provided as argument.")
         sys.exit(1)
 
 
@@ -122,7 +120,6 @@ def describeIAMUserPolicies(user):
 def main():
 	## setting some global variables so that it can be reused
     global iamclient
-    global iamresource
     global profile
 
     profile = args.profile
@@ -146,7 +143,7 @@ def main():
         sys.exit(0)
 
     elif args.action == "details":
-        #checkSGID(args.secgroupid)
+        checkUser(args.username)
         logging.info("Listing details of IAM User %s... " %(args.username))
 
         try:
