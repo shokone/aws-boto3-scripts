@@ -9,7 +9,10 @@
 import boto3
 from botocore.exceptions import ClientError
 import sys
-import argparse
+import argparseimport logging
+
+## add default logger config
+logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
 
 ## First create arguments to work with them
 argparser = argparse.ArgumentParser(description='Perform common instance tasks')
@@ -20,12 +23,12 @@ argparser.add_argument('-i', '--secgroupid', default="null", help='ID of Aws sec
 
 try:
     args = argparser.parse_args()
-    print ("[INFO] Performing action: ", args.action)
-    print ("[INFO] Profile : ", args.profile)
-    print ("[INFO] Region : ", args.region )
-    print ("[INFO] Security Group ID: ", args.secgroupid, "\n")
+    logging.info("Performing action: %s" %(args.action))
+    logging.info("Profile:           %s" %(args.profile))
+    logging.info("Region:            %s" %(args.region))
+    logging.info("Security Group ID: %s\n" %(args.secgroupid))
 except:
-    print ("Please run -h for help, Action and Region are mandatory arguments except for list.")
+    logging.error("Please run -h for help, Action and Region are mandatory arguments except for list.")
     sys.exit(1)
 
 
@@ -36,7 +39,7 @@ def setEc2client(regionName):
         ec2client = boto3.client('ec2', region_name=regionName)
         
     except:
-        print("[ERROR] Failed to set ec2client, please ensure arguments are passed.")
+        logging.error("Failed to set ec2client, please ensure arguments are passed.")
         sys.exit(1)
 
 
@@ -47,19 +50,19 @@ def setEc2Emptyclient():
         ec2client = boto3.client('ec2')
         
     except:
-        print("[ERROR] Failed to set ec2client, please ensure arguments are passed.")
+        logging.error("Failed to set ec2client, please ensure arguments are passed.")
         sys.exit(1)
 
 
 def checkSGID(secgroup):
     if secgroup == "null":
-        print("[ERROR] Security group ID must be provided as argument.")
+        logging.error("Security group ID must be provided as argument.")
         sys.exit(1)
 
 
 def checkRegion(region):
     if region == "all":
-        print("[ERROR] Region must be provided as argument.")
+        logging.error("Region must be provided as argument.")
         sys.exit(1) 
 
 
@@ -73,14 +76,14 @@ def describeSecurityGroups(region, secgroups):
         try:
             print("%s\t%s\t%s\t%s" %(region, sgName, sgid, sgVPCid))
         except:
-            print("[ERROR] Failed to get security groups information.")
+            logging.error("Failed to get security groups information.")
 
 
 def describeSecurityGroupRules(region, secgroups):
 	for secgroup in secgroups['SecurityGroups']:
 		sgName = secgroup.get('GroupName')
 
-		print("\n[INFO] Getting inbound rules for Security Group %s" %(sgName))
+		logging.info("Getting inbound rules for Security Group %s" %(sgName))
 		print("Protocol\tFrom Port\tTo Port\tCidr\t\tDescription")
 
 		for inbound in secgroup['IpPermissions']:
@@ -98,7 +101,7 @@ def describeSecurityGroupRules(region, secgroups):
 				desc    = ipr.get("Description")
 				print("%s\t%s\t%s\t%s\t%s" %(protocol, from_port, to_port, cidr_ip, desc))
 
-		print("\n[INFO] Getting outboud rules for Security Group %s" %(sgName))
+		logging.info("Getting outboud rules for Security Group %s" %(sgName))
 		print("Protocol\tFrom Port\tTo Port\tCidr\t\tDescription")
 
 		for outbound in secgroup['IpPermissionsEgress']:
@@ -137,12 +140,15 @@ def main():
         setEc2client(region)
 
     if args.action == "list":
-        print("[INFO] Listing Security Groups...")
+        logging.info("Listing Security Groups...")
         print("Region\t\tName\tID\tVPC")
 
         setEc2Emptyclient()
-        regions = ec2client.describe_regions()['Regions']
-
+        try:
+            regions = ec2client.describe_regions()['Regions']
+        except ClientError as e:
+            logging.error(e)
+            
         for reg in regions:
             region = reg['RegionName']
             setEc2client(region)
@@ -153,9 +159,14 @@ def main():
 
     elif args.action == "rules":
     	checkSGID(args.secgroupid)
-    	print("[INFO] Listing rules of Security Group %s... " %(args.secgroupid))
-    	securityGroups = ec2client.describe_security_groups(GroupIds=[args.secgroupid])
-    	describeSecurityGroupRules(region, securityGroups)
+    	logging.info("Listing rules of Security Group %s... " %(args.secgroupid))
+
+        try:
+    	   securityGroups = ec2client.describe_security_groups(GroupIds=[args.secgroupid])
+    	except ClientError as e:
+            logging.error(e)
+
+        describeSecurityGroupRules(region, securityGroups)
     	sys.exit(0)
 
 

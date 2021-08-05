@@ -8,8 +8,13 @@
 
 
 import boto3
+from botocore.exceptions import ClientError
 import sys
 import argparse
+import logging
+
+## add default logger config
+logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
 
 ## First create arguments to work with them
 argparser = argparse.ArgumentParser(description='Perform common instance tasks')
@@ -21,12 +26,12 @@ argparser.add_argument('-i', '--instance', default="null", help='ID of Aws insta
 
 try:
     args = argparser.parse_args()
-    print ("[INFO] Performing action: ", args.action)
-    print ("[INFO] Profile : ", args.profile)
-    print ("[INFO] Region : ", args.region )
-    print ("[INFO] Instance ID: ", args.instance, "\n")
+    logging.info("Performing action: %s" %(args.action))
+    logging.info("Profile:           %s" %(args.profile))
+    logging.info("Region:            %s" %(args.region))
+    logging.info("Instance ID:       %s\n" %(args.instance))
 except:
-    print ("Please run -h for help, Action and Region are mandatory arguments except for list.")
+    logging.error("Please run -h for help, Action and Region are mandatory arguments except for list.")
     sys.exit(1)
 
 
@@ -38,7 +43,7 @@ def setEc2client(regionName):
         ec2client = boto3.client('ec2', region_name=regionName)
         
     except:
-        print("[ERROR] Failed to set ec2client, please ensure arguments are passed.")
+        logging.error("Failed to set ec2client, please ensure arguments are passed.")
         sys.exit(1)
 
 
@@ -49,19 +54,19 @@ def setEc2Emptyclient():
         ec2client = boto3.client('ec2')
         
     except:
-        print("[ERROR] Failed to set ec2client, please ensure arguments are passed.")
+        logging.error("Failed to set ec2client, please ensure arguments are passed.")
         sys.exit(1)
 
 
 def checkInstanceID(instance):
     if instance == "null":
-        print("[ERROR] Instance ID must be provided as argument.")
+        logging.error("Instance ID must be provided as argument.")
         sys.exit(1)
 
 
 def checkRegion(region):
     if region == "all":
-        print("[ERROR] Region must be provided as argument.")
+        logging.error("Region must be provided as argument.")
         sys.exit(1) 
 
 
@@ -84,31 +89,31 @@ def describeInstances(region, instances):
             try:
                 print("%s\t%s\t%s\t%s\t%s\t%s\t%s" %(region, iName, iid, itype, istatus, iprivateip, ipublicip))
             except:
-                print("[ERROR] Failed to get instance information.")
+                logging.error("Failed to get instance information.")
 
 
 ## Start instance
 def startInstance(instance):
     try:
         ec2client.start_instances(InstanceIds=[instance])
-        print("[INFO] Starting instance %s. Please wait to be ready." %(instance))
+        logging.info("Starting instance %s. Please wait to be ready." %(instance))
         waiter = ec2client.get_waiter('system_status_ok')
         waiter.wait(InstanceIds=[instance])
-        print("[INFO] Instance %s is ready" %(instance))
+        logging.info("Instance %s is ready" %(instance))
     except:
-        print("[ERROR] Failed to start instance %s" %(instance))
+        logging.error("Failed to start instance %s" %(instance))
 
 
 ## Stop instance
 def stopInstance(instance):
     try:
         ec2client.stop_instances(InstanceIds=[instance])
-        print("[INFO] Stopping instance %s. Please wait to be ready." %(instance))
+        logging.info("Stopping instance %s. Please wait to be ready." %(instance))
         waiter = ec2client.get_waiter('instance_stopped')
         waiter.wait(InstanceIds=[instance])
-        print("[INFO] Instance %s stopped" %(instance))
+        logging.info("Instance %s stopped" %(instance))
     except:
-        print("[ERROR] Failed to stop instance %s" %(instance))
+        logging.error("Failed to stop instance %s" %(instance))
 
 
 ## Get instance status
@@ -125,10 +130,9 @@ def statusInstance(instance):
                 except: iName = "Undefined"
 
             try:
-
-                print("[INFO] Instance %s with ID %s is %s" %(iName, iid, istatus))
+                logging.info("Instance %s with ID %s is %s" %(iName, iid, istatus))
             except:
-                print("[ERROR] Failed to get instance status.")
+                logging.error("Failed to get instance status.")
 
 
 def main():
@@ -149,11 +153,14 @@ def main():
         setEc2client(region)
 
     if args.action == "list":
-        print("[INFO] Listing instances...")
+        logging.info("Listing instances...")
         print("Region\tName\tID\tType\tStatus\tPrivate IP\tPublic IP")
 
         setEc2Emptyclient()
-        regions = ec2client.describe_regions()['Regions']
+        try:
+            regions = ec2client.describe_regions()['Regions']
+        except ClientError as e:
+            logging.error(e)
 
         for reg in regions:
             region = reg['RegionName']
@@ -165,20 +172,25 @@ def main():
 
     elif args.action == "start":
         checkInstanceID(args.instance)
-        print("[INFO] Starting instance... ", args.instance)
+        logging.info("Starting instance... ", args.instance)
         startInstance(args.instance)
         sys.exit(0)
 
     elif args.action == "stop":
         checkInstanceID(args.instance)
-        print("[INFO] Stoping instance... ", args.instance)
+        logging.info("Stoping instance... ", args.instance)
         stopInstance(args.instance)
         sys.exit(0)
 
     elif args.action == "status":
         checkInstanceID(args.instance)
-        print("[INFO] Checking status of instance %s... ", args.instance)
-        instance = ec2client.describe_instances(InstanceIds=[args.instance])
+        logging.info("Checking status of instance %s... ", args.instance)
+        
+        try:
+            instance = ec2client.describe_instances(InstanceIds=[args.instance])
+        except ClientError as e:
+            logging.error(e)
+            
         statusInstance(instance)
         sys.exit(0)
 

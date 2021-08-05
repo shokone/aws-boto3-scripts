@@ -10,8 +10,10 @@ import boto3
 from botocore.exceptions import ClientError
 import sys
 import argparse
-import json
+import jsonimport logging
 
+## add default logger config
+logging.basicConfig(format='[%(levelname)s] %(message)s', level=logging.INFO)
 
 ## First create arguments to work with them
 argparser = argparse.ArgumentParser(description='Perform common instance tasks')
@@ -26,12 +28,12 @@ argparser.add_argument('-t', '--tags', help='Tags to add to a new Aws Elastic IP
 
 try:
     args = argparser.parse_args()
-    print ("[INFO] Performing action: ", args.action)
-    print ("[INFO] Profile : ", args.profile)
-    print ("[INFO] Region : ", args.region )
-    print ("[INFO] Elastic IP Allocation ID: ", args.allocationid, "\n")
+    logging.info("Performing action:        %s" %(args.action))
+    logging.info("Profile:                  %s" %(args.profile))
+    logging.info("Region:                   %s" %(args.region))
+    logging.info("Elastic IP Allocation ID: %s\n" %(args.allocationid))
 except:
-    print ("Please run -h for help, Action and Region are mandatory arguments except for list.")
+    logging.error("Please run -h for help, Action and Region are mandatory arguments except for list.")
     sys.exit(1)
 
 
@@ -42,7 +44,7 @@ def setEc2client(regionName):
         ec2client = boto3.client('ec2', region_name=regionName)
         
     except:
-        print("[ERROR] Failed to set ec2client, please ensure arguments are passed.")
+        logging.error("Failed to set ec2client, please ensure arguments are passed.")
         sys.exit(1)
 
 
@@ -53,19 +55,19 @@ def setEc2Emptyclient():
         ec2client = boto3.client('ec2')
         
     except:
-        print("[ERROR] Failed to set ec2client, please ensure arguments are passed.")
+        logging.error("Failed to set ec2client, please ensure arguments are passed.")
         sys.exit(1)
 
 
 def checkEipId(eipid):
     if secgroup == "null":
-        print("[ERROR] Elastic IP Allocation ID must be provided as argument.")
+        logging.error("Elastic IP Allocation ID must be provided as argument.")
         sys.exit(1)
 
 
 def checkRegion(region):
     if region == "all":
-        print("[ERROR] Region must be provided as argument.")
+        logging.error("Region must be provided as argument.")
         sys.exit(1) 
 
 
@@ -90,7 +92,7 @@ def describeElasticIPs(region, eips):
         try:
             print("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s" %(region, eipName, eipallocationid, eippublicip, eipdomain, eipassociationid, eipinstanceid, eipifaceid, eipprivateip))
         except:
-            print("[ERROR] Failed to get security groups information.")
+            logging.error("Failed to get security groups information.")
 
 
 def main():
@@ -112,12 +114,15 @@ def main():
         setEc2client(region)
 
     if args.action == "list":
-        print("[INFO] Listing Elastic IPs...")
+        logging.info("Listing Elastic IPs...")
         print("Region\t\tName\tAllocation ID\tPublic IP\tDomain\tAssociation ID\tInstance ID\tIface ID\tPrivate IP")
 
         setEc2Emptyclient()
-        regions = ec2client.describe_regions()['Regions']
-
+        try:
+            regions = ec2client.describe_regions()['Regions']
+        except ClientError as e:
+            logging.error(e)
+            
         for reg in regions:
             region = reg['RegionName']
             setEc2client(region)
@@ -127,7 +132,7 @@ def main():
         sys.exit(0)
 
     elif args.action == "add":
-        print("[INFO] Allocating new Elastic IP... ")
+        logging.info("Allocating new Elastic IP... ")
         tags = json.loads(args.tags)
 
         try:
@@ -136,40 +141,43 @@ def main():
                 Resources=[eip["AllocationId"]],
                 Tags=tags
             )
-            print("[INFO] Allocating Elastic IP succesfully requested")
-            print("[INFO] Region:        %s" %(region))
-            print("[INFO] Allocation ID: %s" %(eip["AllocationId"]))
-            print("[INFO] Public IP:     %s" %(eip["PublicIp"]))
+            logging.info("Allocating Elastic IP succesfully requested")
+            logging.info("Region:        %s" %(region))
+            logging.info("Allocation ID: %s" %(eip["AllocationId"]))
+            logging.info("Public IP:     %s" %(eip["PublicIp"]))
         except ClientError as e:
-            print(e)
+            logging.error(e)
 
         sys.exit(0)
 
     elif args.action == "associate":
-        print("[INFO] Associating Elastic IP %s with instance %s... " %(args.allocationid, args.instanceid))
+        logging.info("Associating Elastic IP %s with instance %s... " %(args.allocationid, args.instanceid))
         try:
             eip = ec2client.associate_address(AllocationId=args.allocationid,InstanceId=args.instanceid)
-            print("[INFO] Associate Elastic IP with association id %s succesfully." %(eip["AssociationId"]))
+            logging.info("Associate Elastic IP with association id %s succesfully." %(eip["AssociationId"]))
         except ClientError as e:
-            print(e)
+            logging.error(e)
+
         sys.exit(0)
 
     elif args.action == "disassociate":
-        print("[INFO] Disassociating Elastic IP with association id %s... " %(args.associationid))
+        logging.info("Disassociating Elastic IP with association id %s... " %(args.associationid))
         try:
             ec2client.disassociate_address(AssociationId=args.associationid)
-            print("[INFO] Disassociate Elastic IP with association id %s succesfully." %(args.associationid))
+            logging.info("Disassociate Elastic IP with association id %s succesfully." %(args.associationid))
         except ClientError as e:
-            print(e)
+            logging.error(e)
+
         sys.exit(0)
 
     elif args.action == "release":
-        print("[INFO] Release Elastic IP %s... " %(args.allocationid))
+        logging.info("Release Elastic IP %s... " %(args.allocationid))
         try:
             ec2client.release_address(AllocationId=args.allocationid)
-            print("[INFO] Release Elastic IP %s succesfully." %(args.allocationid))
+            logging.info("Release Elastic IP %s succesfully." %(args.allocationid))
         except ClientError as e:
-            print(e)
+            logging.error(e)
+
         sys.exit(0)
 
 
