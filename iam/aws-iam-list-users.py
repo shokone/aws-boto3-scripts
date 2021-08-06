@@ -32,7 +32,7 @@ try:
     logging.info("Profile:           %s" %(args.profile))
     logging.info("User ID:           %s\n" %(args.username))
 except:
-    logging.error("Please run -h for help, Action and Region are mandatory arguments except for list.")
+    logging.error("Please run -h for help, Action is mandatory argument.")
     sys.exit(1)
 
 
